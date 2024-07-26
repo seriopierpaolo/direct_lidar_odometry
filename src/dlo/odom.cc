@@ -33,6 +33,7 @@ dlo::OdomNode::OdomNode(ros::NodeHandle node_handle) : nh(node_handle) {
 
   this->odom_pub = this->nh.advertise<nav_msgs::Odometry>("odom", 1);
   this->pose_pub = this->nh.advertise<geometry_msgs::PoseStamped>("pose", 1);
+  this->pcodom_pub = this->nh.advertise<flec::pcodom>("pcodom", 1);
   this->kf_pub = this->nh.advertise<nav_msgs::Odometry>("kfs", 1, true);
   this->keyframe_pub = this->nh.advertise<sensor_msgs::PointCloud2>("keyframe", 1, true);
   this->save_traj_srv = this->nh.advertiseService("save_traj", &dlo::OdomNode::saveTrajectory, this);
@@ -377,6 +378,17 @@ void dlo::OdomNode::publishPose() {
   this->pose_ros.pose.orientation.z = this->rotq.z();
 
   this->pose_pub.publish(this->pose_ros);
+
+  
+
+  flec::pcodom msg;
+  msg.header.stamp = this->scan_stamp;
+  msg.header.frame_id = this->odom_frame;
+  msg.PointCloud = this->pc_input_msg;
+  msg.Odometry = this->pose_ros;
+  this->pcodom_pub.publish(msg);
+  
+
 }
 
 
@@ -698,6 +710,8 @@ void dlo::OdomNode::icpCB(const sensor_msgs::PointCloud2ConstPtr& pc) {
   // Debug statements and publish custom DLO message
   this->debug_thread = std::thread( &dlo::OdomNode::debug, this );
   this->debug_thread.detach();
+
+  this->pc_input_msg = *pc;
 
 }
 
@@ -1452,5 +1466,6 @@ void dlo::OdomNode::debug() {
   std::cout << "Cores Utilized   :: " << std::setfill(' ') << std::setw(6) << (cpu_percent/100.) * this->numProcessors << " cores // Avg: " << std::setw(5) << (avg_cpu_usage/100.) * this->numProcessors << std::endl;
   std::cout << "CPU Load         :: " << std::setfill(' ') << std::setw(6) << cpu_percent << " %     // Avg: " << std::setw(5) << avg_cpu_usage << std::endl;
   std::cout << "RAM Allocation   :: " << std::setfill(' ') << std::setw(6) << resident_set/1000. << " MB    // VSZ: " << vm_usage/1000. << " MB" << std::endl;
+
 
 }

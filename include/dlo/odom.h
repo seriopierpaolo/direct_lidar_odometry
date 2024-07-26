@@ -77,6 +77,7 @@ private:
 
   ros::Publisher odom_pub;
   ros::Publisher pose_pub;
+  ros::Publisher pcodom_pub;
   ros::Publisher keyframe_pub;
   ros::Publisher kf_pub;
 
@@ -110,6 +111,8 @@ private:
   std::vector<int> submap_kf_idx_curr;
   std::vector<int> submap_kf_idx_prev;
   std::atomic<bool> submap_hasChanged;
+
+  sensor_msgs::PointCloud2 pc_input_msg;
 
   pcl::PointCloud<PointType>::Ptr source_cloud;
   pcl::PointCloud<PointType>::Ptr target_cloud;
