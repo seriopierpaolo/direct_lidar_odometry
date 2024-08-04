@@ -19,7 +19,7 @@ std::atomic<bool> dlo::OdomNode::abort_(false);
 dlo::OdomNode::OdomNode(ros::NodeHandle node_handle) : nh(node_handle) {
 
   this->getParams();
-
+  
   this->stop_publish_thread = false;
   this->stop_publish_keyframe_thread = false;
   this->stop_metrics_thread = false;
@@ -272,6 +272,7 @@ void dlo::OdomNode::getParams() {
 
 void dlo::OdomNode::start() {
   ROS_INFO("Starting DLO Odometry Node");
+  
 
   printf("\033[2J\033[1;1H");
   std::cout << std::endl << "==== Direct LiDAR Odometry v" << this->version_ << " ====" << std::endl << std::endl;
@@ -326,6 +327,7 @@ void dlo::OdomNode::abortTimerCB(const ros::TimerEvent& e) {
  **/
 
 void dlo::OdomNode::publishToROS() {
+  
   this->publishPose();
   this->publishTransform();
 }
@@ -336,6 +338,7 @@ void dlo::OdomNode::publishToROS() {
  **/
 
 void dlo::OdomNode::publishPose() {
+  
 
   // Sign flip check
   static Eigen::Quaternionf q_diff{1., 0., 0., 0.};
@@ -378,7 +381,7 @@ void dlo::OdomNode::publishPose() {
   this->pose_ros.pose.orientation.z = this->rotq.z();
 
   this->pose_pub.publish(this->pose_ros);
-
+ 
   
 
   flec::pcodom msg;
@@ -387,7 +390,7 @@ void dlo::OdomNode::publishPose() {
   msg.PointCloud = this->pc_input_msg;
   msg.Odometry = this->pose_ros;
   this->pcodom_pub.publish(msg);
-  
+
 
 }
 
@@ -458,7 +461,7 @@ void dlo::OdomNode::publishKeyframe() {
  **/
 
 void dlo::OdomNode::preprocessPoints() {
-
+           
   // Original Scan
   *this->original_scan = *this->current_scan;
 
@@ -606,7 +609,7 @@ void dlo::OdomNode::initializeDLO() {
   if (!this->imu_calibrated && this->imu_use_) {
     return;
   }
-
+  
   // Gravity Align
   if (this->gravity_align_ && this->imu_use_ && this->imu_calibrated && !this->initial_pose_use_) {
     std::cout << "Aligning to gravity... "; std::cout.flush();
@@ -648,7 +651,7 @@ void dlo::OdomNode::icpCB(const sensor_msgs::PointCloud2ConstPtr& pc) {
   double then = ros::Time::now().toSec();
   this->scan_stamp = pc->header.stamp;
   this->curr_frame_stamp = pc->header.stamp.toSec();
-
+  
   // If there are too few points in the pointcloud, try again
   this->current_scan = pcl::PointCloud<PointType>::Ptr (new pcl::PointCloud<PointType>);
   pcl::fromROSMsg(*pc, *this->current_scan);
@@ -660,11 +663,13 @@ void dlo::OdomNode::icpCB(const sensor_msgs::PointCloud2ConstPtr& pc) {
   // DLO Initialization procedures (IMU calib, gravity align)
   if (!this->dlo_initialized) {
     this->initializeDLO();
+
     return;
   }
 
   // Preprocess points
   this->preprocessPoints();
+
 
   // Compute Metrics
   this->metrics_thread = std::thread( &dlo::OdomNode::computeMetrics, this );
@@ -680,7 +685,7 @@ void dlo::OdomNode::icpCB(const sensor_msgs::PointCloud2ConstPtr& pc) {
     this->initializeInputTarget();
     return;
   }
-
+  
   // Set source frame
   this->source_cloud = pcl::PointCloud<PointType>::Ptr (new pcl::PointCloud<PointType>);
   this->source_cloud = this->current_scan;
@@ -704,14 +709,16 @@ void dlo::OdomNode::icpCB(const sensor_msgs::PointCloud2ConstPtr& pc) {
   this->comp_times.push_back(ros::Time::now().toSec() - then);
 
   // Publish stuff to ROS
+
   this->publish_thread = std::thread( &dlo::OdomNode::publishToROS, this );
   this->publish_thread.detach();
-
+/*
   // Debug statements and publish custom DLO message
   this->debug_thread = std::thread( &dlo::OdomNode::debug, this );
   this->debug_thread.detach();
-
+*/
   this->pc_input_msg = *pc;
+
 
 }
 
@@ -1379,6 +1386,7 @@ bool dlo::OdomNode::saveTrajectory(direct_lidar_odometry::save_traj::Request& re
  * Debug Statements
  **/
 
+
 void dlo::OdomNode::debug() {
 
   // Total length traversed
@@ -1446,6 +1454,7 @@ void dlo::OdomNode::debug() {
   this->cpu_percents.push_back(cpu_percent);
   double avg_cpu_usage = std::accumulate(this->cpu_percents.begin(), this->cpu_percents.end(), 0.0) / this->cpu_percents.size();
 
+  
   // Print to terminal
   printf("\033[2J\033[1;1H");
 
@@ -1469,3 +1478,4 @@ void dlo::OdomNode::debug() {
 
 
 }
+
